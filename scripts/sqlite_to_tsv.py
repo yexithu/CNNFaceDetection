@@ -1,5 +1,6 @@
 import sqlite3
-conn = sqlite3.connect('/home/yexi/Desktop/AFLW/aflw-db/data/aflw.sqlite')
+from settings import *
+conn = sqlite3.connect(AFLW_SQILTE)
 conn.row_factory = sqlite3.Row
 cur = conn.cursor()
 import re
@@ -45,8 +46,8 @@ def produce_line(filename):
         meta['sex'],
     ])))
 
-root = '/home/yexi/Desktop/AFLW/aflw/data/flickr'
-output_filename = 'data/faces.tsv'
+root = AFLW_ROOT
+output_filename = FACES_TSV
 output_file = open(output_filename, 'w')
 success = 0
 fail = 0
