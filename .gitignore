@@ -2,3 +2,8 @@ data/*
 !data/.gitkeep
 scripts/*.pyc
 caffe/
+
+src/*
+!src/makefile
+!src/*.cpp
+
