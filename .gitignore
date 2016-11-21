@@ -1,4 +1,4 @@
 data/*
 !data/.gitkeep
-scripts/settings.pyc
+scripts/*.pyc
 caffe/

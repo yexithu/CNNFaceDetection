@@ -9,3 +9,9 @@ CROPED_ROOT = 'data/faces/'
 NONFACES_ROOT = 'data/nonfaces/'
 
 FACES_LIST = 'data/faces.list'
+
+NAIVE_FACE_TRAIN_LISTS = {
+    'train' : 'data/lists/naive_train.list',
+    'cross_val': 'data/lists/naive_cross_val.list',
+    'test' : 'data/lists/naive_test.list'
+}
