@@ -1,44 +1,52 @@
 #include "CaffePredictor.hpp"
-#include <caffe/caffe.hpp>
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
 #include <algorithm>
-#include <iosfwd>
 #include <memory>
 #include <string>
-#include <utility>
 #include <vector>
+#include <fstream>
+
+using namespace std;
 
 int main(int argc, char** argv) {
-  if (argc != 6) {
-    std::cerr << "Usage: " << argv[0]
-              << " deploy.prototxt network.caffemodel"
-              << " mean.binaryproto labels.txt img.jpg" << std::endl;
-    return 1;
-  }
+    if (argc != 6) {
+        std::cerr << "Usage: " << argv[0]
+            << " deploy.prototxt network.caffemodel"
+            << " root_of_test test.list result_to_save" << std::endl;
+        return 1;
+    }
 
-  ::google::InitGoogleLogging(argv[0]);
+    ::google::InitGoogleLogging(argv[0]);
 
-  string model_file   = argv[1];
-  string trained_file = argv[2];
-  string mean_file    = argv[3];
-  string label_file   = argv[4];
-  Classifier classifier(model_file, trained_file, mean_file, label_file);
+    string model_file   = argv[1];
+    string trained_file = argv[2];
+    string test_root    = argv[3];
+    string test_list    = argv[4];
+    string result_file  = argv[5];
+    CaffePredictor caffe_predictor(model_file, trained_file);
 
-  string file = argv[5];
+    /* Load labels. */
+    vector<string> img_list;
+    vector<int> label_list; 
+    ifstream infile;
+    infile.open(test_list.c_str(), ios::in);
+    string line;
+    char dir_buf[100];
+    int label_buf;
+    while(getline(infile, line)) {
+        sscanf(line.c_str(), "%s%d", dir_buf, &label_buf);
+        img_list.push_back(dir_buf);
+        label_list.push_back(label_buf);
+    }
 
-  std::cout << "---------- Prediction for "
-            << file << " ----------" << std::endl;
-
-  cv::Mat img = cv::imread(file, -1);
-  CHECK(!img.empty()) << "Unable to decode image " << file;
-  std::vector<Prediction> predictions = classifier.Classify(img);
-
-  /* Print the top N predictions. */
-  for (size_t i = 0; i < predictions.size(); ++i) {
-    Prediction p = predictions[i];
-    std::cout << std::fixed << std::setprecision(4) << p.second << " - \""
-              << p.first << "\"" << std::endl;
-  }
+    vector<float> result_list(img_list.size());
+    random_shuffle(img_list.begin(), img_list.end());
+    for (string img : img_list) {
+        cv::Mat mat;
+        mat = cv::imread(img, 0);
+        cv::resize(mat, mat, cv::Size(25, 25));
+        cv::imshow("Test", mat);
+        vector<float> out = caffe_predictor.Predict(mat);
+        cout << "Score" << out[1] << endl;
+        cv::waitKey(0);
+    }
 }

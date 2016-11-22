@@ -1,4 +1,5 @@
 CXX=g++
+CXXFLAGS:=-std=c++11
 INCS:=-I../caffe/distribute/include \
 	  -I/usr/local/cuda/include
 
@@ -11,16 +12,16 @@ LIBS+=$(shell pkg-config --libs opencv)
 
 
 detect.bin: detect.o CaffePredictor.o
-	$(CXX) $(INCS) -o detect.bin detect.o CaffePredictor.o $(LIBS)
+	$(CXX) $(CXXFLAGS) $(INCS) -o detect.bin detect.o CaffePredictor.o $(LIBS)
 
 detect.o: detect.cpp
-	$(CXX) $(INCS) -c detect.cpp $(LIBS)
+	$(CXX) $(CXXFLAGS) $(INCS) -c detect.cpp $(LIBS)
 
 # Detector.o: Detector.hpp
 # 	$(CXX) $(INCS) -c Detector.cpp $(LIBS)
 
 CaffePredictor.o: CaffePredictor.hpp
-	$(CXX) $(INCS) -c CaffePredictor.cpp $(LIBS)
+	$(CXX) $(CXXFLAGS) $(INCS) -c CaffePredictor.cpp $(LIBS)
 
 # classification:
 # 	$(CXX) $(INCS) classification.cpp -o cln $(LIBS)
