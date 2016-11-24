@@ -20,8 +20,8 @@ def main():
 def crop_face(line):
     src = join(AFLW_ROOT, line[0])
     faceid = line[1]
-    facey = int(line[2])
-    facex = int(line[3])
+    facex = int(line[2])
+    facey = int(line[3])
     facew = int(line[4])
     faceh = int(line[5])
     gender = line[6]
@@ -30,9 +30,9 @@ def crop_face(line):
     rows, cols, channel = img.shape
     if facex < 0 or facey < 0:
         return
-    if ((facex + faceh) >= rows) or ((facey + facew) >= cols):
+    if ((facey + faceh) >= rows) or ((facex + facew) >= cols):
         return
-    croped = img[facex: facex + faceh, facey: facey + facew]
+    croped = img[facey: facey + faceh, facex: facex + facew]
     dst = join(CROPED_ROOT, line[0])
     cv2.imwrite(dst, croped)
     faces.append('%s\t%s\n' % (line[0], gender))

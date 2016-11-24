@@ -1,7 +1,7 @@
 import cv2
 from os.path import join
 import numpy as np
-from settings import NONFACES_ROOT
+from settings import RANIMG_ROOT
 
 ran_img_num = 5000;
 ran_img_len = 2500
@@ -17,7 +17,7 @@ def main():
         img = img.reshape(50, 50)
         
         fname = "ranimg_{}.jpg".format(i)
-        fname = join(NONFACES_ROOT, fname)        
+        fname = join(RANIMG_ROOT, fname)        
         cv2.imwrite(fname, img)
 
 if __name__ == '__main__':

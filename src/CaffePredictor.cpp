@@ -1,7 +1,7 @@
 #include "CaffePredictor.hpp"
 
 using namespace caffe;
-using namespace std;
+using std::string;
 
 CaffePredictor::CaffePredictor(const string& model_file, const string& trained_file) {
     Caffe::set_mode(Caffe::CPU);

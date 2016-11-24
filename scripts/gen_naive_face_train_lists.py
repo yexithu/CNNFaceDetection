@@ -45,10 +45,10 @@ def get_faces():
 def get_nonfaces():
     nonfaces = {}
     lines = []
-    lines = os.listdir(NONFACES_ROOT)
+    lines = os.listdir(RANIMG_ROOT)
     # lines = lines[:10]
     nonfaces = list_split(lines)
-    dict_insert_root(nonfaces, NONFACES_ROOT)
+    dict_insert_root(nonfaces, RANIMG_ROOT)
     return nonfaces
 
 def balance(faces, nonfaces):
