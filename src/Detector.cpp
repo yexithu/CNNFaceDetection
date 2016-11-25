@@ -14,16 +14,15 @@ void Detector::Input(const cv::Mat img) {
 	input_ = img.clone();
 	cv::resize(input_, input_, cv::Size(), 0.5, 0.5);
 	cv::cvtColor(input_, gray_, CV_BGR2GRAY);
-	output_ = img.clone();
+	output_ = input_.clone();
 	faces_.clear();
 }
-
 
 bool Detector::Detect() {
 	std::cout << "Detector::Detect" << std::endl;
 	vector<cv::Point> centers;
 	vector<vector<float> > score_map;
-
+	cv::imshow("Gray", gray_);
 	cv::Size size = gray_.size();
 	for (int i = 0; i < gray_.rows; i+= STRIDE) {
 		vector<float> row_score_map;
@@ -37,14 +36,14 @@ bool Detector::Detect() {
 			centers.push_back(p);
 			cv::Mat patch = gray_(rect);
 			// cv::imshow("Patch", patch);
-			// cv::waitKey();
+			// cv::waitKey(30);
 			float score = predictor_->Predict(patch)[1];
-			// std::cout << "Score " << score[1] << std::endl;
+			// std::cout << "Score " << score << std::endl;
 			row_score_map.push_back(score);
 
-			if (score < 0.5) {
-				std::cout << "HAHA" << std::endl;
-				// cv::rectangle(output_, rect, cv::Scalar(0, 0, 255));
+			if (score > 0.5) {
+				// cv::waitKey();
+				cv::rectangle(output_, rect, cv::Scalar(0, 0, 255));
 			}
 		}
 		score_map.push_back(row_score_map);

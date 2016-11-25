@@ -4,6 +4,8 @@ import csv
 import cv2
 from settings import *
 import shutil
+import random
+import numpy as np
 
 
 INITSIZE = 25
@@ -11,6 +13,8 @@ SCALE = 2
 INITSTRIDE = 10
 
 MAXSIZE = 50
+
+MAX_SAMPLE = 100
 
 def clean_nonfaces():
     shutil.rmtree(NONFACES_ROOT)
@@ -54,6 +58,7 @@ def gen_nonfaces(line):
         return True
 
     img_count = 0
+    patchs = []
     while win_size < rows and win_size < cols:
         y = 0
         while y < rows:
@@ -65,7 +70,9 @@ def gen_nonfaces(line):
                 patch = img[y: y + win_size, x: x + win_size]
                 if win_size > MAXSIZE:
                     patch = cv2.resize(patch, (MAXSIZE, MAXSIZE))
-                cv2.imwrite(os.path.join(prefix, str(img_count) + ".jpg"), patch)
+                patchs.append(np.empty_like(patch))
+                np.copyto(patchs[-1], patch)
+                # cv2.imwrite(os.path.join(prefix, str(img_count) + ".jpg"), patch)
 
                 img_count += 1
                 x += stride
@@ -74,6 +81,11 @@ def gen_nonfaces(line):
         win_size = round(win_size * SCALE)
         stride = round(stride * SCALE)
 
+    if len(patchs) > MAX_SAMPLE:
+        random.shuffle(patchs)
+        patchs = patchs[:MAX_SAMPLE]
+    for i, p in enumerate(patchs):
+        cv2.imwrite(os.path.join(prefix, str(i) + ".jpg"), patchs[i])
 
 
 def main():
@@ -88,10 +100,12 @@ def main():
 
     count = 0
     in_count = 0
-    print "Len Single", len(single_list)    
+    print "Len Single", len(single_list)  
     with open(FACES_TSV, 'r') as tsv:
         for line in csv.reader(tsv, delimiter='\t'):
             count += 1
+            # if count == 10:
+            #     break
             if count % 1000 == 0:
                 print count
             if not line[0] in single_list:

@@ -6,4 +6,5 @@ caffe/
 src/*
 !src/makefile
 !src/*.cpp
+!src/*.hpp
 
