@@ -7,7 +7,7 @@ layer {
   image_data_param {
     source: "/home/yexi/Desktop/CNNFaceDetection/data/lists/face_nonface_train.list"
     root_folder: "/home/yexi/Desktop/CNNFaceDetection/"
-    batch_size: 512
+    batch_size: 256
     shuffle: true
     is_color: false
     new_height: 25
@@ -27,7 +27,7 @@ layer {
   image_data_param {
     source: "/home/yexi/Desktop/CNNFaceDetection/data/lists/face_nonface_cross_val.list"
     root_folder: "/home/yexi/Desktop/CNNFaceDetection/"
-    batch_size: 512
+    batch_size: 256
     shuffle: true
     is_color: false
     new_height: 25

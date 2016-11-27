@@ -1,9 +1,7 @@
 #ifndef DETECTOR_HPP
 #define DETECTOR_HPP
 #include <caffe/caffe.hpp>
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/opencv.hpp>
 #include <algorithm>
 #include <memory>
 #include <string>
@@ -17,6 +15,7 @@ public:
 	void Input(const cv::Mat img);
 	bool Detect();
 	std::vector<cv::Rect> GetFaces();
+	std::vector<cv::Rect> ScanImage(cv::Mat &img);
 	cv::Mat GetOutput();
 
 private:
@@ -31,6 +30,9 @@ private:
 	const int HALFSIZE;
 	const int STRIDE;
 	const float SCALERATE;
+	const int GROUPTHRESHOLD;
+
+	void AppendRectangles(std::vector<cv::Rect>& old_list,  std::vector<cv::Rect>& new_list);
 
 	inline cv::Rect _roi(cv::Point& center) {
 		return cv::Rect(center.x - HALFSIZE, center.y - HALFSIZE, FACESIZE, FACESIZE);

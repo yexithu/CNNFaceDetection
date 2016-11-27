@@ -1,5 +1,5 @@
-CXX=g++
-CXXFLAGS:=-std=c++11
+CXX=g++ -std=c++11
+CXXFLAGS:=-std=c++0x
 INCS:=-I../caffe/distribute/include \
 	  -I/usr/local/cuda/include
 
@@ -10,7 +10,7 @@ LIBS:=-L/usr/lib/x86_64-linux-gnu/ -lprotobuf -lglog -lboost_system\
 	  -L../caffe/build/lib/ -lcaffe
 LIBS+=$(shell pkg-config --libs opencv)
 
-all: detect.bin test_list.bin
+all: detect.bin test_list.bin 
 	@echo "MAKE ALL"
 
 detect.bin: CaffePredictor.o Detector.o detect.o
