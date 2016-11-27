@@ -2,6 +2,10 @@
 #include <vector>
 using std::vector;
 
+inline bool operator <= (const cv::Rect& r1, const cv::Rect& r2) {
+    // rect1 subseteq rect2
+    return (r1 & r2) == r1;
+}
 
 void AppendRectangles(
     vector<cv::Rect>& old_list,
