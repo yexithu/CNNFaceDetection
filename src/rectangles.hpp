@@ -3,11 +3,11 @@
 using std::vector;
 
 
-vector<cv::Rect> AppendRectangles(
+void AppendRectangles(
     vector<cv::Rect>& old_list,
     vector<cv::Rect>& new_list)
 {
-    vector<cv::Rect> result = old_list;
+    vector<cv::Rect> rects_to_be_appended;
     for(auto new_rect : new_list){
         bool overlap = false;
         for(auto old_rect : old_list){
@@ -19,8 +19,12 @@ vector<cv::Rect> AppendRectangles(
             }
         }
         if(!overlap){
-            result.push_back(new_rect);
+            rects_to_be_appended.push_back(new_rect);
         }
     }
-    return result;
+
+    for(auto i : rects_to_be_appended){
+        old_list.push_back(i);
+    }
+    return;
 }
