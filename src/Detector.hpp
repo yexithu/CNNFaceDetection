@@ -18,6 +18,16 @@ public:
 	std::vector<cv::Rect> ScanImage(cv::Mat &img);
 	cv::Mat GetOutput();
 
+	inline bool overlap(cv::Rect& x, cv::Rect& y){
+		auto i = x & y;
+		return i.width != 0 || i.height != 0;
+	}
+
+	inline bool cover(cv::Rect& x, cv::Rect& y){
+		//x covers y, y subseteq x
+		return (x & y) == y;
+	}
+
 private:
 	cv::Mat input_;
 	cv::Mat gray_;
@@ -32,6 +42,7 @@ private:
 	const float SCALERATE;
 	const int GROUPTHRESHOLD;
 
+	void AddPadding(cv::Rect&, int);
 	void AppendRectangles(std::vector<cv::Rect>& old_list,  std::vector<cv::Rect>& new_list);
 
 	inline cv::Rect _roi(cv::Point& center) {
@@ -39,8 +50,8 @@ private:
 	}
 
 	inline bool _check(cv::Rect& rect, cv::Size &size) {
-		return ((rect.x >= 0) && (rect.y >= 0) && 
-			    ((rect.x + rect.width) <= size.width) && 
+		return ((rect.x >= 0) && (rect.y >= 0) &&
+			    ((rect.x + rect.width) <= size.width) &&
 				((rect.y + rect.height) <= size.height));
 	}
 
