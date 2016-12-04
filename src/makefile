@@ -1,5 +1,5 @@
-CXX=g++ -std=c++11
-CXXFLAGS:=-std=c++0x
+CXX=g++ -std=c++11 -fopenmp
+CXXFLAGS:=-std=c++0x 
 INCS:=-I../caffe/distribute/include \
 	  -I/usr/local/cuda/include
 
