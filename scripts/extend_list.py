@@ -31,6 +31,16 @@ def extend_list(input_name, output_name):
         ]
         bootstraps = bootstraps.extend(false_positives)
 
+    single_list = []
+    with open(SINGLEFACE_LIST) as f:
+        single_list = f.readlines()
+        single_list = map(lambda x: x.strip(), single_list)
+
+    # intersect single_list
+    bootstraps = [
+        filter(lambda x: x[0] in single_list, bootstraps)
+    ]
+
     output_file = open(output_file, 'w')
 
     # k * negative ~ 1 * bootstrap
