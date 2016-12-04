@@ -12,7 +12,6 @@ using std::round;
 #define THREADNUM 4
 Detector::Detector(const string& model_file, const string& trained_file)
 	: FACESIZE(25), HALFSIZE(12), SCALERATE(1.5), STRIDE(3), GROUPTHRESHOLD(5) {
-	predictor_.reset(new CaffePredictor(model_file, trained_file));
 
 	omp_set_num_threads(THREADNUM);
 	multi_predictors_.resize(THREADNUM);

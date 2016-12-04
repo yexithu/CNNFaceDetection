@@ -34,7 +34,6 @@ private:
 	cv::Mat output_;
 	std::vector<cv::Rect> faces_;
 
-	caffe::shared_ptr<CaffePredictor > predictor_;
 	std::vector<caffe::shared_ptr<CaffePredictor > > multi_predictors_;
 	std::vector< std::vector< cv::Rect> > multi_rects_;
 	std::vector< cv::Mat> multi_grays_;
