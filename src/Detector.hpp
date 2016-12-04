@@ -7,6 +7,8 @@
 #include <string>
 #include <utility>
 #include <vector>
+using std::vector;
+
 class CaffePredictor;
 
 class Detector {
@@ -34,7 +36,7 @@ private:
 	cv::Mat output_;
 	std::vector<cv::Rect> faces_;
 
-	caffe::shared_ptr<CaffePredictor > predictor_;
+	vector<caffe::shared_ptr<CaffePredictor > > predictors_;
 
 	const int FACESIZE;
 	const int HALFSIZE;

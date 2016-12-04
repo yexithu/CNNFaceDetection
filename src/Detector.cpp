@@ -2,6 +2,14 @@
 #include "CaffePredictor.hpp"
 #include <cmath>
 
+#include <future>
+void worker(
+	float& result,
+	caffe::shared_ptr<CaffePredictor >& pred,
+	const cv::Mat& patch){
+
+	result = pred->Predict(patch)[1];
+}
 using namespace caffe;
 using std::string;
 using std::vector;
@@ -9,7 +17,10 @@ using std::floor;
 using std::round;
 Detector::Detector(const string& model_file, const string& trained_file)
 	: FACESIZE(25), HALFSIZE(12), SCALERATE(1.5), STRIDE(3), GROUPTHRESHOLD(5) {
-	predictor_.reset(new CaffePredictor(model_file, trained_file));
+
+	predictors_.resize(2);
+	for(auto& predictor_ : predictors_)
+		predictor_.reset(new CaffePredictor(model_file, trained_file));
 }
 
 void Detector::Input(const cv::Mat img) {
@@ -84,7 +95,7 @@ bool Detector::Detect() {
 			rect.height = round(rect.height * rate);
 		}
 		AppendRectangles(faces_, rects);
-		// for (auto r: rects) 
+		// for (auto r: rects)
 		// 	faces_.push_back(r);
 		rate *= SCALERATE;
 		cv::resize(gray_, img, cv::Size(), 1 / rate, 1 / rate);
@@ -116,16 +127,36 @@ vector<cv::Rect> Detector::ScanImage(cv::Mat &img) {
 	vector<cv::Rect>  rects;
 	for (int i = 0; i < img.rows; i+= STRIDE) {
 		// vector<float> row_score_map;
-		for (int j = 0; j < img.cols; j += STRIDE) {
+		for (int j = 0; j < img.cols; j += 2 * STRIDE) {
 			cv::Point p(j, i);
 			cv::Rect rect = _roi(p);
 			if (!_check(rect, size)) {
 				continue;
 			}
 			cv::Mat patch = img(rect);
-			float score = predictor_->Predict(patch)[1];
+			cv::Mat const& patch_const = patch;
+
+			cv::Point p1(j, i);
+			cv::Rect rect1 = _roi(p1);
+			if (!_check(rect1, size)) {
+				continue;
+			}
+			cv::Mat patch1 = img(rect1);
+			float score;
+			auto thread = std::thread(
+				worker,
+				std::ref(score),
+				std::ref(predictors_[0]),
+				std::ref(patch_const)
+			);
+			float score1 = predictors_[1]->Predict(patch1)[1];
+			thread.join();
+			//float score = predictors_[0]->Predict(patch)[1];
 			if (score > 0.5) {
  				rects.push_back(rect);
+			}
+			if (score1 > 0.5) {
+ 				rects.push_back(rect1);
 			}
 		}
 	}
