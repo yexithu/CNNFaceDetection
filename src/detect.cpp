@@ -29,7 +29,6 @@ int main(int argc, char** argv) {
     if (detector.Detect()) {
         vector<cv::Rect> rects = detector.GetFaces();
         cv::Mat out = detector.GetOutput();
-        cv::resize(out, out, cv::Size(), 2, 2);
         cv::imwrite(output, out);
     } else {
         cout << "Detection Fail." << endl;

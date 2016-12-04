@@ -8,7 +8,7 @@ using std::vector;
 using std::floor;
 using std::round;
 Detector::Detector(const string& model_file, const string& trained_file)
-	: FACESIZE(25), HALFSIZE(12), SCALERATE(1.25), STRIDE(3), GROUPTHRESHOLD(5) {
+	: FACESIZE(25), HALFSIZE(12), SCALERATE(1.5), STRIDE(3), GROUPTHRESHOLD(5) {
 	predictor_.reset(new CaffePredictor(model_file, trained_file));
 }
 
@@ -20,52 +20,6 @@ void Detector::Input(const cv::Mat img) {
 	output_ = input_.clone();
 	faces_.clear();
 }
-
-// bool Detector::Detect() {
-// 	std::cout << "Detector::Detect" << std::endl;
-// 	vector<cv::Point> centers;
-// 	vector<vector<float> > score_map;
-// 	cv::imshow("Gray", gray_);
-// 	cv::Size size = gray_.size();
-
-
-// 	for (int i = 0; i < gray_.rows; i+= STRIDE) {
-// 		vector<float> row_score_map;
-// 		for (int j = 0; j < gray_.cols; j += STRIDE) {
-// 			cv::Point p(j, i);
-// 			cv::Rect rect = _roi(p);
-// 			if (!_check(rect, size)) {
-// 				continue;
-// 			}
-
-// 			centers.push_back(p);
-// 			cv::Mat patch = gray_(rect);
-// 			// cv::imshow("Patch", patch);
-// 			// cv::waitKey(30);
-// 			float score = predictor_->Predict(patch)[1];
-// 			// std::cout << "Score " << score << std::endl;
-// 			row_score_map.push_back(score);
-
-// 			if (score > 0.5) {
-// 				// cv::waitKey();
-//  				faces_.push_back(rect);
-// 				// cv::waitKey(100);
-// 				cv::rectangle(output_, rect, cv::Scalar(0, 0, 255));
-// 			}
-// 		}
-// 		score_map.push_back(row_score_map);
-// 	}
-// 	groupRectangles(faces_, 3, 0.1);
-// 	cv::Mat compare = input_.clone();
-// 	for (cv::Rect rect: faces_) {
-// 		cv::rectangle(compare, rect, cv::Scalar(0, 0, 255));
-// 	}
-// 	cv::imwrite("data/testcase/3.jpg", compare);
-// 	// cv::imshow("Output", output_);
-// 	// cv::waitKey();
-// 	return true;
-// }
-
 
 void Detector::AddPadding(cv::Rect& r, int padding){
 
@@ -113,6 +67,7 @@ void Detector::AppendRectangles(
     return;
 }
 
+
 bool Detector::Detect() {
 	float rate = 1;
 	cv::Mat img = gray_.clone();
@@ -129,8 +84,10 @@ bool Detector::Detect() {
 			rect.height = round(rect.height * rate);
 		}
 		AppendRectangles(faces_, rects);
+		// for (auto r: rects) 
+		// 	faces_.push_back(r);
 		rate *= SCALERATE;
-		cv::resize(img, img, cv::Size(), 1 / rate, 1 / rate);
+		cv::resize(gray_, img, cv::Size(), 1 / rate, 1 / rate);
 	}
 
 	cv::Size in_size = input_.size();
@@ -140,6 +97,7 @@ bool Detector::Detect() {
 	for (cv::Rect rect: faces_) {
 		cv::rectangle(output_, rect, cv::Scalar(0, 0, 255));
 	}
+	return true;
 }
 
 vector<cv::Rect> Detector::GetFaces() {

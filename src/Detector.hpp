@@ -18,12 +18,12 @@ public:
 	std::vector<cv::Rect> ScanImage(cv::Mat &img);
 	cv::Mat GetOutput();
 
-	inline bool overlap(cv::Rect& x, cv::Rect& y){
+	inline bool static overlap(cv::Rect& x, cv::Rect& y){
 		auto i = x & y;
 		return i.width != 0 || i.height != 0;
 	}
 
-	inline bool cover(cv::Rect& x, cv::Rect& y){
+	inline bool static cover(cv::Rect& x, cv::Rect& y){
 		//x covers y, y subseteq x
 		return (x & y) == y;
 	}
