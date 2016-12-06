@@ -8,7 +8,7 @@
 
 using namespace std;
 const int FACESIZE = 25;
-const float SCALERATE = 1.5;
+const float SCALERATE = 2;
 
 
 vector<cv::Rect> Detect(cv::Mat& gray_, Detector& detector) {
@@ -57,6 +57,17 @@ void mkdir(string _){
 	system(("mkdir " + _).c_str());
 }
 
+void force_resize(cv::Mat& img)
+{
+    int hardcode = 500;
+    cv::Size size = img.size();
+    if (size.width <= hardcode || size.height <= hardcode)
+        return;
+
+    int minEdge = std::min(size.width, size.height);
+    double ratio = hardcode * 1.0 / minEdge;
+    cv::resize(img, img, cv::Size(), ratio, ratio);
+}
 
 int main(int argc, char** argv) {
     if (argc != 6) {
@@ -108,9 +119,9 @@ int main(int argc, char** argv) {
     for(auto i=0; i< n ; i++){
 
     	auto filename = filenames[i];
-    	cout << data_root + filename << endl;
+    	cout << i << '/' << n << ": " << filename << endl;
     	auto gray_ = cv::imread(data_root + filename, 0);
-
+        force_resize(gray_);
     	auto detected = Detect(gray_, detector);
     	vector<cv::Rect> negatives;
 
@@ -126,7 +137,6 @@ int main(int argc, char** argv) {
     	for(auto i=0; i<negatives.size(); i++){
     		//crop
     		string output_filename = output_filename_prefix + to_string(i) + ".jpg";
-    		cout << output_filename << endl;
     		auto croped = gray_(negatives[i]);
     		cv::imwrite(output_filename, croped);
     	}
