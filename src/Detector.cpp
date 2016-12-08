@@ -124,7 +124,7 @@ vector<cv::Rect> Detector::ScanImage(cv::Mat &img) {
 			}
 			cv::Mat patch = img(rect);
 			float score = predictor_->Predict(patch)[1];
-			if (score > 0.8) {
+			if (score > 0.5) {
 				//std::cout << score << std::endl;
 				//cv::imshow("Patch", patch);
 				//cv::waitKey();

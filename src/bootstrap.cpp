@@ -136,9 +136,13 @@ int main(int argc, char** argv) {
     	mkdir(output_filename_prefix);
     	for(auto i=0; i<negatives.size(); i++){
     		//crop
-    		string output_filename = output_filename_prefix + to_string(i) + ".jpg";
-    		auto croped = gray_(negatives[i]);
-    		cv::imwrite(output_filename, croped);
+            try {
+                string output_filename = output_filename_prefix + to_string(i) + ".jpg";
+                auto croped = gray_(negatives[i]);
+                cv::imwrite(output_filename, croped);
+            } catch (cv::Exception) {
+                std::cout << "Exception" << std::endl;
+            }
     	}
     }
     return 0;
