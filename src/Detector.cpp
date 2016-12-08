@@ -8,7 +8,7 @@ using std::vector;
 using std::floor;
 using std::round;
 Detector::Detector(const string& model_file, const string& trained_file)
-	: FACESIZE(25), HALFSIZE(12), SCALERATE(1.5), STRIDE(3), GROUPTHRESHOLD(5) {
+	: FACESIZE(25), HALFSIZE(12), SCALERATE(1.5), STRIDE(3), GROUPTHRESHOLD(1) {
 	predictor_.reset(new CaffePredictor(model_file, trained_file));
 }
 
@@ -84,7 +84,7 @@ bool Detector::Detect() {
 			rect.height = round(rect.height * rate);
 		}
 		AppendRectangles(faces_, rects);
-		// for (auto r: rects) 
+		// for (auto r: rects)
 		// 	faces_.push_back(r);
 		rate *= SCALERATE;
 		cv::resize(gray_, img, cv::Size(), 1 / rate, 1 / rate);
@@ -124,7 +124,10 @@ vector<cv::Rect> Detector::ScanImage(cv::Mat &img) {
 			}
 			cv::Mat patch = img(rect);
 			float score = predictor_->Predict(patch)[1];
-			if (score > 0.5) {
+			if (score > 0.8) {
+				//std::cout << score << std::endl;
+				//cv::imshow("Patch", patch);
+				//cv::waitKey();
  				rects.push_back(rect);
 			}
 		}
