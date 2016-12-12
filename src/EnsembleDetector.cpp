@@ -147,12 +147,6 @@ bool EnsembleDetector::Detect() {
 		}
 
 		AppendRectangles(hrects, _hrects);
-		// for (auto r: rects)
-		// 	faces_.push_back(r);
-		// for (auto r: _hrects)
-		// {
-		// 	hrects.push_back(r);
-		// }
 		for (auto r: _lrects)
 		{
 			lrects.push_back(r);
@@ -164,7 +158,6 @@ bool EnsembleDetector::Detect() {
 	{
 		faces_.push_back(r);
 	}
-	// groupRectangles(hrects, 1, EPS);
 	groupRectangles(lrects, 2, 0.51);
 	for (int i = 0; i < lrects.size(); ++i) {
 		cv::Rect& r1 = lrects[i];
@@ -188,7 +181,6 @@ bool EnsembleDetector::Detect() {
 			faces_.push_back(r1);
 		}
 	}
-
 	faces_ = RemoveTooLargeRectangles(faces_, 2);
 	cv::Size in_size = input_.size();
 	in_size.width += 5;

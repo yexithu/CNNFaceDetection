@@ -1,5 +1,6 @@
 #include <opencv2/opencv.hpp>
 #include <vector>
+#include <algorithm>
 using std::vector;
 
 inline bool operator <= (const cv::Rect& r1, const cv::Rect& r2) {
@@ -36,6 +37,7 @@ void AppendRectangles(
 
 using std::cout;
 using std::endl;
+using std::max;
 
 vector<cv::Rect> _RemoveTooLargeRectangles(vector<cv::Rect>& rects, double k = 3){
     vector<double> keys;
@@ -48,6 +50,7 @@ vector<cv::Rect> _RemoveTooLargeRectangles(vector<cv::Rect>& rects, double k = 3
     double mean = sum / keys.size();
     double sq_sum = std::inner_product(keys.begin(), keys.end(), keys.begin(), 0.0);
     double stdev = std::sqrt(sq_sum / keys.size() - mean * mean);
+    stdev = max(stdev, 0.01);
     double upper_bound = mean + k * stdev;
 
     // cout << "sum, mu, signa: " << sum << ',' << mean << ',' << stdev << endl;
