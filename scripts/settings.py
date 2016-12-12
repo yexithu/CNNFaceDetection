@@ -16,6 +16,8 @@ SINGLEFACE_LIST = 'data/singleface.list'
 
 NONFACES_ROOT = 'data/nonfaces/'
 
+BOOTSTRAP_ROOT = 'data/bootstrap/'
+BOOTSTRAP1_ROOT = 'data/bootstrap1/'
 # train using faces and ran imgs
 NAIVE_FACE_TRAIN_LISTS = {
     'train' : 'data/lists/naive_train.list',
@@ -27,5 +29,27 @@ NAIVE_FACE_TRAIN_LISTS = {
 FACE_NONFACE_TRAIN_LISTS = {
     'train' : 'data/lists/face_nonface_train.list',
     'cross_val': 'data/lists/face_nonface_cross_val.list',
-    'test' : 'data/lists/face_nonface_test.list'    
+    'test' : 'data/lists/face_nonface_test.list'
 }
+
+#bootstrap
+BS_TRAIN_LISTS = {
+    'train' : 'data/lists/bs_train.list',
+    'cross_val': 'data/lists/bs_cross_val.list',
+    'test' : 'data/lists/bs_tests.list'
+}
+
+BS1_TRAIN_LISTS = {
+    'train' : 'data/lists/bs1_train.list',
+    'cross_val': 'data/lists/bs1_cross_val.list',
+    'test' : 'data/lists/bs1_tests.list'
+}
+
+FACE_BS1_TRAIN_LISTS = {
+    'train' : 'data/lists/face_bs1_train.list',
+    'cross_val': 'data/lists/face_bs1_cross_val.list',
+    'test' : 'data/lists/face_bs1_tests.list'
+}
+
+
+

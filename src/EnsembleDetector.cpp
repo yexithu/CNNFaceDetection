@@ -1,36 +1,23 @@
-#include <omp.h>
-#include "Detector.hpp"
+#include "EnsembleDetector.hpp"
 #include "CaffePredictor.hpp"
 #include <cmath>
 
-#include <future>
-void worker(
-	float& result,
-	caffe::shared_ptr<CaffePredictor >& pred,
-	const cv::Mat& patch){
-
-	result = pred->Predict(patch)[1];
-}
 using namespace caffe;
 using std::string;
 using std::vector;
 using std::floor;
 using std::round;
+EnsembleDetector::EnsembleDetector(const string& model_file,
+						   const string& trained_file1,
+						   const string& trained_file2)
+	: FACESIZE(25), HALFSIZE(12), SCALERATE(1.5), STRIDE(3), GROUPTHRESHOLD(1), SCORETHRESHOLD(0.7) {
 
-#define THREADNUM 4
-Detector::Detector(const string& model_file, const string& trained_file)
-	: FACESIZE(25), HALFSIZE(12), SCALERATE(1.5), STRIDE(3), GROUPTHRESHOLD(5) {
-
-
-	omp_set_num_threads(THREADNUM);
-	multi_predictors_.resize(THREADNUM);
-	for (int i = 0; i < THREADNUM; ++i) {
-		multi_predictors_[i].reset(new CaffePredictor(model_file, trained_file));
-	}
+	predictor1_.reset(new CaffePredictor(model_file, trained_file1));
+	predictor2_.reset(new CaffePredictor(model_file, trained_file2));
 }
 
-void Detector::Input(const cv::Mat img) {
-	std::cout << "Detector::Input" << std::endl;
+void EnsembleDetector::Input(const cv::Mat img) {
+	std::cout << "EnsembleDetector::Input" << std::endl;
 	input_ = img.clone();
 	// cv::resize(input_, input_, cv::Size(), 0.3, 0.3);
 	cv::cvtColor(input_, gray_, CV_BGR2GRAY);
@@ -38,7 +25,7 @@ void Detector::Input(const cv::Mat img) {
 	faces_.clear();
 }
 
-void Detector::AddPadding(cv::Rect& r, int padding){
+void EnsembleDetector::AddPadding(cv::Rect& r, int padding){
 
 	r.x -= padding;
 	r.width += 2 * padding;
@@ -48,7 +35,8 @@ void Detector::AddPadding(cv::Rect& r, int padding){
 	r.x = r.x>=0? r.x: 0;
 	r.y = r.y>=0? r.y: 0;
 }
-void Detector::AppendRectangles(
+
+void EnsembleDetector::AppendRectangles(
     vector<cv::Rect>& old_list,
     vector<cv::Rect>& new_list) {
 
@@ -85,7 +73,7 @@ void Detector::AppendRectangles(
 }
 
 
-bool Detector::Detect() {
+bool EnsembleDetector::Detect() {
 	float rate = 1;
 	cv::Mat img = gray_.clone();
 	while(true) {
@@ -117,68 +105,36 @@ bool Detector::Detect() {
 	return true;
 }
 
-vector<cv::Rect> Detector::GetFaces() {
-	std::cout << "Detector::GetFaces" << std::endl;
+vector<cv::Rect> EnsembleDetector::GetFaces() {
+	std::cout << "EnsembleDetector::GetFaces" << std::endl;
 	return vector<cv::Rect>();
 }
 
-cv::Mat Detector::GetOutput() {
-	std::cout << "Detector::GetOutput" << std::endl;
+cv::Mat EnsembleDetector::GetOutput() {
+	std::cout << "EnsembleDetector::GetOutput" << std::endl;
 	return output_;
 }
 
-void Detector::ParrelTest(cv::Rect rect) {
-	int id = omp_get_thread_num();
-	// printf("%d\n", id);
-	// cv::imshow("Window", multi_grays_[id]);
-	// cv::waitKey();
-	cv::Mat patch = multi_grays_[id](rect);
-	if (multi_predictors_[id]->Predict(patch)[1] > 0.5) {
-		multi_rects_[id].push_back(rect);
-	}
-	// printf("End %d\n", id);
-}
-vector<cv::Rect> Detector::ScanImage(cv::Mat &img) {
-	std::cout << "Detector::ScanImage" << std::endl;
-
-	multi_grays_.clear();
-	multi_grays_.resize(THREADNUM);
-	multi_rects_.clear();
-	multi_rects_.resize(THREADNUM);
-
-	for (int i = 0; i < THREADNUM; ++i) {
-		multi_grays_[i] = img.clone();
-	}
+vector<cv::Rect> EnsembleDetector::ScanImage(cv::Mat &img) {
+	std::cout << "EnsembleDetector::ScanImage" << std::endl;
 	cv::Size size = img.size();
 	vector<cv::Rect>  rects;
-	vector<cv::Rect>  allRects;
 	for (int i = 0; i < img.rows; i+= STRIDE) {
 		// vector<float> row_score_map;
-		for (int j = 0; j < img.cols; j += 2 * STRIDE) {
+		for (int j = 0; j < img.cols; j += STRIDE) {
 			cv::Point p(j, i);
 			cv::Rect rect = _roi(p);
 			if (!_check(rect, size)) {
 				continue;
 			}
-
-			allRects.push_back(rect);
-
+			cv::Mat patch = img(rect);
+			float score1 = predictor1_->Predict(patch)[1];
+			float score2 = predictor2_->Predict(patch)[1];
+			if (score1 > SCORETHRESHOLD || score1 > SCORETHRESHOLD
+				|| (score1 > 0.5 && score2 > 0.5)) {
+				rects.push_back(rect);
+			}
 		}
-	}
-
-	#pragma omp parallel for
-	for (int i = 0; i < allRects.size(); ++i) {
-		ParrelTest(allRects[i]);
-	}
-
-	int total_size = 0;
-	for (int i = 0; i < multi_rects_.size(); ++i) {
-		total_size += multi_rects_[i].size();
-	}
-
-	rects.reserve(total_size);
-	for (int i = 0; i < multi_rects_.size(); ++i) {
-		rects.insert(rects.end(), multi_rects_[i].begin(), multi_rects_[i].end());
 	}
 	groupRectangles(rects, GROUPTHRESHOLD);
 	return rects;

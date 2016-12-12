@@ -32,3 +32,42 @@ void AppendRectangles(
     }
     return;
 }
+
+
+using std::cout;
+using std::endl;
+
+vector<cv::Rect> _RemoveTooLargeRectangles(vector<cv::Rect>& rects, double k = 3){
+    vector<double> keys;
+
+    for(auto& rect : rects){
+        keys.push_back((rect).width);
+    }
+    cout << "n: " << rects.size();
+    double sum = std::accumulate(keys.begin(), keys.end(), 0.0);
+    double mean = sum / keys.size();
+    double sq_sum = std::inner_product(keys.begin(), keys.end(), keys.begin(), 0.0);
+    double stdev = std::sqrt(sq_sum / keys.size() - mean * mean);
+    double upper_bound = mean + k * stdev;
+
+    cout << "sum, mu, signa: " << sum << ',' << mean << ',' << stdev << endl;
+
+    vector<cv::Rect> result;
+    for(auto i = 0u; i < rects.size(); i ++){
+        cout << keys[i] << ',';
+        if(keys[i] < upper_bound){
+            result.push_back(rects[i]);
+        }
+    }
+    return result;
+}
+
+vector<cv::Rect> RemoveTooLargeRectangles(vector<cv::Rect>& rects, double k = 3){
+    while(1){
+        auto result = _RemoveTooLargeRectangles(rects, k);
+        if(result.size() == rects.size()){
+            return result;
+        }
+        rects = result;
+    }
+}

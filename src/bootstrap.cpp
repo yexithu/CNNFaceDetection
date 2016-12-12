@@ -8,11 +8,11 @@
 
 using namespace std;
 const int FACESIZE = 25;
-const float SCALERATE = 1.5;
+const float SCALERATE = 2;
 
 
 vector<cv::Rect> Detect(cv::Mat& gray_, Detector& detector) {
-	float rate = 1;	
+	float rate = 1;
 	cv::Mat img = gray_.clone();
 	auto faces_ = vector<cv::Rect>();
 
@@ -28,8 +28,8 @@ vector<cv::Rect> Detect(cv::Mat& gray_, Detector& detector) {
 			rect.width = round(rect.width * rate);
 			rect.height = round(rect.height * rate);
 		}
-		
-		for (auto r: rects) 
+
+		for (auto r: rects)
 			faces_.push_back(r);
 		rate *= SCALERATE;
 		cv::resize(gray_, img, cv::Size(), 1 / rate, 1 / rate);
@@ -57,6 +57,17 @@ void mkdir(string _){
 	system(("mkdir " + _).c_str());
 }
 
+void force_resize(cv::Mat& img)
+{
+    int hardcode = 500;
+    cv::Size size = img.size();
+    if (size.width <= hardcode || size.height <= hardcode)
+        return;
+
+    int minEdge = std::min(size.width, size.height);
+    double ratio = hardcode * 1.0 / minEdge;
+    cv::resize(img, img, cv::Size(), ratio, ratio);
+}
 
 int main(int argc, char** argv) {
     if (argc != 6) {
@@ -65,7 +76,7 @@ int main(int argc, char** argv) {
             << " data_tsv data_root output_root" << std::endl;
         return 1;
     }
-    
+
     ::google::InitGoogleLogging(argv[0]);
 
     string model_file   = argv[1];
@@ -75,7 +86,6 @@ int main(int argc, char** argv) {
     string output_root = argv[5];
 
     //prepare
-
     system(("rm -r " + output_root).c_str());
     mkdir(output_root);
     mkdir(output_root + "/0");
@@ -84,9 +94,22 @@ int main(int argc, char** argv) {
 
 
 
-
     Detector detector(model_file, trained_file);
-    
+
+
+
+
+
+	fstream singleface_file;
+	singleface_file.open("./data/singleface.list");
+	set<string> singleface;
+	string singleface_line;
+	while(getline(singleface_file, singleface_line)){
+		singleface.insert(singleface_line);
+	}
+	singleface_file.close();
+
+
     ifstream infile;
     infile.open(data_tsv.c_str(), ios::in);
     string line;
@@ -97,20 +120,24 @@ int main(int argc, char** argv) {
     vector<string> filenames;
     vector<cv::Rect> rectangles;
     while(getline(infile, line)) {
-        sscanf(line.c_str(), "%s\t%d\t%d\t%d\t%d\t%d", buf, 
+        sscanf(line.c_str(), "%s\t%d\t%d\t%d\t%d\t%d", buf,
         	&face_id, &buf_rect.x, &buf_rect.y, &buf_rect.width, &buf_rect.height);
         // cout << buf << " " << buf_rect.x << " " << buf_rect.y << " " << buf_rect.width << " " << buf_rect.height << endl;
+		if(singleface.find(string(buf)) == singleface.end()){
+			continue;
+		}
         filenames.push_back(buf);
         rectangles.push_back(buf_rect);
     }
     infile.close();
     auto n = filenames.size();
-    for(auto i=0; i < n ; i++){
-    	
-    	auto filename = filenames[i];
-    	cout << data_root + filename << endl;
-    	auto gray_ = cv::imread(data_root + filename, 0);
 
+    for(auto i=0; i < n ; i++){
+
+    	auto filename = filenames[i];
+    	cout << i << '/' << n << ": " << filename << endl;
+    	auto gray_ = cv::imread(data_root + filename, 0);
+        force_resize(gray_);
     	auto detected = Detect(gray_, detector);
     	vector<cv::Rect> negatives;
 
@@ -125,10 +152,13 @@ int main(int argc, char** argv) {
     	mkdir(output_filename_prefix);
     	for(auto i=0; i<negatives.size(); i++){
     		//crop
-    		string output_filename = output_filename_prefix + to_string(i) + ".jpg";
-    		cout << output_filename << endl;
-    		auto croped = gray_(negatives[i]);
-    		cv::imwrite(output_filename, croped);
+            try {
+                string output_filename = output_filename_prefix + to_string(i) + ".jpg";
+                auto croped = gray_(negatives[i]);
+                cv::imwrite(output_filename, croped);
+            } catch (cv::Exception) {
+                std::cout << "Exception" << std::endl;
+            }
     	}
     }
     return 0;

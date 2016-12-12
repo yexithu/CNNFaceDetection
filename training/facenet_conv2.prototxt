@@ -5,9 +5,9 @@ layer {
   top: "data"
   top: "label"
   image_data_param {
-    source: "/home/yexi/Desktop/CNNFaceDetection/data/lists/face_nonface_train.list"
+    source: "/home/yexi/Desktop/CNNFaceDetection/data/lists/bs1_train.list"
     root_folder: "/home/yexi/Desktop/CNNFaceDetection/"
-    batch_size: 256
+    batch_size: 512
     shuffle: true
     is_color: false
     new_height: 25
@@ -25,9 +25,9 @@ layer {
   top: "data"
   top: "label"
   image_data_param {
-    source: "/home/yexi/Desktop/CNNFaceDetection/data/lists/face_nonface_cross_val.list"
+    source: "/home/yexi/Desktop/CNNFaceDetection/data/lists/bs1_cross_val.list"
     root_folder: "/home/yexi/Desktop/CNNFaceDetection/"
-    batch_size: 256
+    batch_size: 512
     shuffle: true
     is_color: false
     new_height: 25
