@@ -46,7 +46,8 @@ private:
 	const float SCALERATE;
 	const int GROUPTHRESHOLD;
 	const float SCORETHRESHOLD;
-
+	const float EPS;
+	
 	void AddPadding(cv::Rect&, int);
 	void AppendRectangles(std::vector<cv::Rect>& old_list,  std::vector<cv::Rect>& new_list);
 

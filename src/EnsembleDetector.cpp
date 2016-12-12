@@ -1,5 +1,6 @@
 #include "EnsembleDetector.hpp"
 #include "CaffePredictor.hpp"
+#include "rectangles.hpp"
 #include <cmath>
 
 using namespace caffe;
@@ -10,7 +11,7 @@ using std::round;
 EnsembleDetector::EnsembleDetector(const string& model_file,
 						   const string& trained_file1,
 						   const string& trained_file2)
-	: FACESIZE(25), HALFSIZE(12), SCALERATE(1.5), STRIDE(3), GROUPTHRESHOLD(1), SCORETHRESHOLD(0.7) {
+	: FACESIZE(25), HALFSIZE(12), SCALERATE(1.5), STRIDE(3), GROUPTHRESHOLD(1), SCORETHRESHOLD(0.7), EPS(0.4) {
 
 	predictor1_.reset(new CaffePredictor(model_file, trained_file1));
 	predictor2_.reset(new CaffePredictor(model_file, trained_file2));
@@ -99,6 +100,7 @@ bool EnsembleDetector::Detect() {
 	in_size.width += 5;
 	in_size.height += 5;
 	cv::resize(output_, output_, in_size);
+	faces_ = RemoveTooLargeRectangles(faces_, 2);
 	for (cv::Rect rect: faces_) {
 		cv::rectangle(output_, rect, cv::Scalar(0, 0, 255));
 	}
@@ -130,12 +132,12 @@ vector<cv::Rect> EnsembleDetector::ScanImage(cv::Mat &img) {
 			cv::Mat patch = img(rect);
 			float score1 = predictor1_->Predict(patch)[1];
 			float score2 = predictor2_->Predict(patch)[1];
-			if (score1 > SCORETHRESHOLD || score1 > SCORETHRESHOLD
-				|| (score1 > 0.5 && score2 > 0.5)) {
-				rects.push_back(rect);
+			if ((score1 > SCORETHRESHOLD) || (score2 > SCORETHRESHOLD)
+				|| ((score1 > 0.5) && (score2 > 0.5))) {
+				rects.push_back(rect);				
 			}
 		}
 	}
-	groupRectangles(rects, GROUPTHRESHOLD);
+	groupRectangles(rects, GROUPTHRESHOLD, EPS);
 	return rects;
 }

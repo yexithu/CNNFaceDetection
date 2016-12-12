@@ -1,7 +1,7 @@
 LD_LIBRARY_PATH=./caffe/distribute/lib/ \
-./src/detect.bin \
+./src/ensemble_detect.bin \
    ./data/models/conv2_deploy.prototxt \
-   ./data/models/conv2_face_bs1_iter_6000.caffemodel \
-   ./data/models/conv2_face_bs1_iter_6000.caffemodel \
-   ./data/testcase/1.png \
-   ./data/testcase/conv2_face_bs1_6000_0.5_1.jpg
+   ./data/models/105conv2_bs11_iter_4000.caffemodel \
+   ./data/models/conv2_bs11_iter_40000.caffemodel \
+   ./data/testcase/4.jpg \
+   ./data/testcase/ensemble/4.jpg
