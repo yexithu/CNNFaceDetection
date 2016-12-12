@@ -18,7 +18,8 @@ public:
 	void Input(const cv::Mat img);
 	bool Detect();
 	std::vector<cv::Rect> GetFaces();
-	std::vector<cv::Rect> ScanImage(cv::Mat &img);
+	// std::vector<cv::Rect> ScanImage(cv::Mat &img);
+	void ScanImage(cv::Mat &img, std::vector<cv::Rect> &highrects, std::vector<cv::Rect> &lowrects);
 	cv::Mat GetOutput();
 
 	inline bool static overlap(cv::Rect& x, cv::Rect& y){
@@ -30,6 +31,7 @@ public:
 		//x covers y, y subseteq x
 		return (x & y) == y;
 	}
+	static bool allowed(cv::Rect& x, cv::Rect& y);
 
 private:
 	cv::Mat input_;
@@ -47,7 +49,7 @@ private:
 	const int GROUPTHRESHOLD;
 	const float SCORETHRESHOLD;
 	const float EPS;
-	
+
 	void AddPadding(cv::Rect&, int);
 	void AppendRectangles(std::vector<cv::Rect>& old_list,  std::vector<cv::Rect>& new_list);
 

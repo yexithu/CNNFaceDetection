@@ -43,18 +43,18 @@ vector<cv::Rect> _RemoveTooLargeRectangles(vector<cv::Rect>& rects, double k = 3
     for(auto& rect : rects){
         keys.push_back((rect).width);
     }
-    cout << "n: " << rects.size();
+    // cout << "n: " << rects.size();
     double sum = std::accumulate(keys.begin(), keys.end(), 0.0);
     double mean = sum / keys.size();
     double sq_sum = std::inner_product(keys.begin(), keys.end(), keys.begin(), 0.0);
     double stdev = std::sqrt(sq_sum / keys.size() - mean * mean);
     double upper_bound = mean + k * stdev;
 
-    cout << "sum, mu, signa: " << sum << ',' << mean << ',' << stdev << endl;
+    // cout << "sum, mu, signa: " << sum << ',' << mean << ',' << stdev << endl;
 
     vector<cv::Rect> result;
     for(auto i = 0u; i < rects.size(); i ++){
-        cout << keys[i] << ',';
+        // cout << keys[i] << ',';
         if(keys[i] < upper_bound){
             result.push_back(rects[i]);
         }
