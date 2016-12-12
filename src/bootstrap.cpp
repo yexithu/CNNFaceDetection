@@ -105,8 +105,8 @@ int main(int argc, char** argv) {
     }
     infile.close();
     auto n = filenames.size();
-    for(auto i=0; i< n ; i++){
-
+    for(auto i=0; i < n ; i++){
+    	
     	auto filename = filenames[i];
     	cout << data_root + filename << endl;
     	auto gray_ = cv::imread(data_root + filename, 0);

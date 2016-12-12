@@ -36,7 +36,10 @@ private:
 	cv::Mat output_;
 	std::vector<cv::Rect> faces_;
 
-	vector<caffe::shared_ptr<CaffePredictor > > predictors_;
+	std::vector<caffe::shared_ptr<CaffePredictor > > multi_predictors_;
+	std::vector< std::vector< cv::Rect> > multi_rects_;
+	std::vector< cv::Mat> multi_grays_;
+
 
 	const int FACESIZE;
 	const int HALFSIZE;
@@ -46,6 +49,7 @@ private:
 
 	void AddPadding(cv::Rect&, int);
 	void AppendRectangles(std::vector<cv::Rect>& old_list,  std::vector<cv::Rect>& new_list);
+	void ParrelTest(cv::Rect rect);
 
 	inline cv::Rect _roi(cv::Point& center) {
 		return cv::Rect(center.x - HALFSIZE, center.y - HALFSIZE, FACESIZE, FACESIZE);

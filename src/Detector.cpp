@@ -1,3 +1,4 @@
+#include <omp.h>
 #include "Detector.hpp"
 #include "CaffePredictor.hpp"
 #include <cmath>
@@ -15,12 +16,18 @@ using std::string;
 using std::vector;
 using std::floor;
 using std::round;
+
+#define THREADNUM 4
 Detector::Detector(const string& model_file, const string& trained_file)
 	: FACESIZE(25), HALFSIZE(12), SCALERATE(1.5), STRIDE(3), GROUPTHRESHOLD(5) {
 
-	predictors_.resize(2);
-	for(auto& predictor_ : predictors_)
-		predictor_.reset(new CaffePredictor(model_file, trained_file));
+
+	omp_set_num_threads(THREADNUM);
+	multi_predictors_.resize(THREADNUM);
+	for (int i = 0; i < THREADNUM; ++i) {
+		multi_predictors_[i].reset(new CaffePredictor(model_file, trained_file));
+	}
+
 }
 
 void Detector::Input(const cv::Mat img) {
@@ -121,10 +128,31 @@ cv::Mat Detector::GetOutput() {
 	return output_;
 }
 
+void Detector::ParrelTest(cv::Rect rect) {
+	int id = omp_get_thread_num();
+	// printf("%d\n", id);
+	// cv::imshow("Window", multi_grays_[id]);
+	// cv::waitKey();
+	cv::Mat patch = multi_grays_[id](rect);
+	if (multi_predictors_[id]->Predict(patch)[1] > 0.5) {
+		multi_rects_[id].push_back(rect);
+	}
+	// printf("End %d\n", id);
+}
 vector<cv::Rect> Detector::ScanImage(cv::Mat &img) {
 	std::cout << "Detector::ScanImage" << std::endl;
+
+	multi_grays_.clear();
+	multi_grays_.resize(THREADNUM);
+	multi_rects_.clear();
+	multi_rects_.resize(THREADNUM);
+
+	for (int i = 0; i < THREADNUM; ++i) {
+		multi_grays_[i] = img.clone();
+	}
 	cv::Size size = img.size();
 	vector<cv::Rect>  rects;
+	vector<cv::Rect>  allRects;
 	for (int i = 0; i < img.rows; i+= STRIDE) {
 		// vector<float> row_score_map;
 		for (int j = 0; j < img.cols; j += 2 * STRIDE) {
@@ -133,32 +161,24 @@ vector<cv::Rect> Detector::ScanImage(cv::Mat &img) {
 			if (!_check(rect, size)) {
 				continue;
 			}
-			cv::Mat patch = img(rect);
-			cv::Mat const& patch_const = patch;
 
-			cv::Point p1(j, i);
-			cv::Rect rect1 = _roi(p1);
-			if (!_check(rect1, size)) {
-				continue;
-			}
-			cv::Mat patch1 = img(rect1);
-			float score;
-			auto thread = std::thread(
-				worker,
-				std::ref(score),
-				std::ref(predictors_[0]),
-				std::ref(patch_const)
-			);
-			float score1 = predictors_[1]->Predict(patch1)[1];
-			thread.join();
-			//float score = predictors_[0]->Predict(patch)[1];
-			if (score > 0.5) {
- 				rects.push_back(rect);
-			}
-			if (score1 > 0.5) {
- 				rects.push_back(rect1);
-			}
+			allRects.push_back(rect);
 		}
+	}
+
+	#pragma omp parallel for
+	for (int i = 0; i < allRects.size(); ++i) {
+		ParrelTest(allRects[i]);
+	}
+
+	int total_size = 0;
+	for (int i = 0; i < multi_rects_.size(); ++i) {
+		total_size += multi_rects_[i].size();
+	}
+
+	rects.reserve(total_size);
+	for (int i = 0; i < multi_rects_.size(); ++i) {
+		rects.insert(rects.end(), multi_rects_[i].begin(), multi_rects_[i].end());
 	}
 	groupRectangles(rects, GROUPTHRESHOLD);
 	return rects;
