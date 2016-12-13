@@ -3,6 +3,7 @@
 #include "rectangles.hpp"
 #include <cmath>
 #include <algorithm>
+#include <omp.h>
 
 using namespace caffe;
 using std::string;
@@ -10,6 +11,8 @@ using std::vector;
 using std::floor;
 using std::round;
 using std::min;
+
+#define THREADNUM 4
 
 const string GENDER_MODEL = "./models/gender.prototxt";
 const string GENDER_TRAINED = "./models/gender.model";
@@ -24,9 +27,13 @@ EnsembleDetector::EnsembleDetector(const string& model_file,
 						   const string& trained_file2)
 	: FACESIZE(25), HALFSIZE(12), SCALERATE(1.5), STRIDE(3), GROUPTHRESHOLD(1), SCORETHRESHOLD(0.7), EPS(0.2) {
 
-	predictor1_.reset(new CaffePredictor(model_file, trained_file1));
-	predictor2_.reset(new CaffePredictor(model_file, trained_file2));
-
+	omp_set_num_threads(THREADNUM);
+	multi_predictors1_.resize(THREADNUM);
+	multi_predictors2_.resize(THREADNUM);
+	for (int i = 0; i < THREADNUM; ++i) {
+		multi_predictors1_[i].reset(new CaffePredictor(model_file, trained_file1));
+		multi_predictors2_[i].reset(new CaffePredictor(model_file, trained_file2));
+	}
 	predictor_gender_.reset(new CaffePredictor(GENDER_MODEL, GENDER_TRAINED));
 	predictor_smile_.reset(new CaffePredictor(SMILE_MODEL, SMILE_TRAINED));
 }
@@ -113,6 +120,10 @@ bool EnsembleDetector::Detect() {
 		}
 
 		AppendRectangles(hrects, _hrects);
+		for (auto r: _hrects)
+		{
+			hrects.push_back(r);
+		}
 		for (auto r: _lrects)
 		{
 			lrects.push_back(r);
@@ -147,6 +158,13 @@ bool EnsembleDetector::Detect() {
 			faces_.push_back(r1);
 		}
 	}
+
+	// for (cv::Rect rect: hrects) {
+	// 	cv::rectangle(output_, rect, cv::Scalar(0, 0, 255));
+	// }
+	// for (cv::Rect rect: lrects) {
+	// 	cv::rectangle(output_, rect, cv::Scalar(0, 255, 0));
+	// }
 	faces_ = RemoveTooLargeRectangles(faces_, 2);
 	CalcProperties();
 	return true;
@@ -216,9 +234,41 @@ cv::Mat EnsembleDetector::GetOutput() {
 	return output_;
 }
 
+void EnsembleDetector::ParrelTest(cv::Rect rect) {
+	int id = omp_get_thread_num();
+	// cv::imshow("Window", multi_grays_[id]);
+	// cv::waitKey();
+	cv::Mat patch = multi_grays_[id](rect);
+	float score1 = multi_predictors1_[id]->Predict(patch)[1];
+	float score2 = multi_predictors2_[id]->Predict(patch)[1];
+	if (score1 < 0.5 && score2 < 0.5) {
+		return;
+	}
+	if ((score1 > SCORETHRESHOLD) || (score2 > SCORETHRESHOLD)
+		|| ((score1 > 0.5) && (score2 > 0.5))) {
+		multi_hrects_[id].push_back(rect);
+	}
+	else {
+		multi_lrects_[id].push_back(rect);
+	}
+}
+
 void EnsembleDetector::ScanImage(cv::Mat &img, vector<cv::Rect> &highrects, vector<cv::Rect> &lowrects) {
 	std::cout << "EnsembleDetector::ScanImage" << std::endl;
+
+	multi_grays_.clear();
+	multi_grays_.resize(THREADNUM);
+	multi_hrects_.clear();
+	multi_hrects_.resize(THREADNUM);
+	multi_lrects_.clear();
+	multi_lrects_.resize(THREADNUM);
+
+	for (int i = 0; i < THREADNUM; ++i) {
+		multi_grays_[i] = img.clone();
+	}
+
 	cv::Size size = img.size();
+	vector<cv::Rect>  allRects;
 	for (int i = 0; i < img.rows; i+= STRIDE) {
 		// vector<float> row_score_map;
 		for (int j = 0; j < img.cols; j += STRIDE) {
@@ -227,19 +277,56 @@ void EnsembleDetector::ScanImage(cv::Mat &img, vector<cv::Rect> &highrects, vect
 			if (!_check(rect, size)) {
 				continue;
 			}
-			cv::Mat patch = img(rect);
-			float score1 = predictor1_->Predict(patch)[1];
-			float score2 = predictor2_->Predict(patch)[1];
-			if (score1 < 0.5 && score2 < 0.5) {
-				continue;
-			}
-			if ((score1 > SCORETHRESHOLD) || (score2 > SCORETHRESHOLD)
-				|| ((score1 > 0.5) && (score2 > 0.5))) {
-				highrects.push_back(rect);
-			}
-			else {
-				lowrects.push_back(rect);
-			}
+			allRects.push_back(rect);
 		}
 	}
+
+	#pragma omp parallel for
+	for (int i = 0; i < allRects.size(); ++i) {
+		ParrelTest(allRects[i]);
+	}
+
+	int total_size;
+	total_size = 0;
+	for (int i = 0; i < multi_hrects_.size(); ++i) {
+		total_size += multi_hrects_[i].size();
+	}
+	highrects.reserve(total_size);
+	for (int i = 0; i < multi_hrects_.size(); ++i) {
+		highrects.insert(highrects.end(), multi_hrects_[i].begin(), multi_hrects_[i].end());
+	}
+
+	total_size = 0;
+	for (int i = 0; i < multi_lrects_.size(); ++i) {
+		total_size += multi_lrects_[i].size();
+	}
+	lowrects.reserve(total_size);
+	for (int i = 0; i < multi_lrects_.size(); ++i) {
+		lowrects.insert(lowrects.end(), multi_lrects_[i].begin(), multi_lrects_[i].end());
+	}
+
+	// cv::Size size = img.size();
+	// for (int i = 0; i < img.rows; i+= STRIDE) {
+	// 	// vector<float> row_score_map;
+	// 	for (int j = 0; j < img.cols; j += STRIDE) {
+	// 		cv::Point p(j, i);
+	// 		cv::Rect rect = _roi(p);
+	// 		if (!_check(rect, size)) {
+	// 			continue;
+	// 		}
+	// 		cv::Mat patch = img(rect);
+	// 		float score1 = predictor1_->Predict(patch)[1];
+	// 		float score2 = predictor2_->Predict(patch)[1];
+	// 		if (score1 < 0.5 && score2 < 0.5) {
+	// 			continue;
+	// 		}
+	// 		if ((score1 > SCORETHRESHOLD) || (score2 > SCORETHRESHOLD)
+	// 			|| ((score1 > 0.5) && (score2 > 0.5))) {
+	// 			highrects.push_back(rect);
+	// 		}
+	// 		else {
+	// 			lowrects.push_back(rect);
+	// 		}
+	// 	}
+	// }
 }

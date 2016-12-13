@@ -47,8 +47,11 @@ private:
 	std::vector<int> genders_;
 	std::vector<int> smile_flags_;
 
-	caffe::shared_ptr<CaffePredictor > predictor1_;
-	caffe::shared_ptr<CaffePredictor > predictor2_;
+	std::vector<caffe::shared_ptr<CaffePredictor > > multi_predictors1_;
+	std::vector<caffe::shared_ptr<CaffePredictor > > multi_predictors2_;
+	std::vector< std::vector< cv::Rect> > multi_hrects_;
+	std::vector< std::vector< cv::Rect> > multi_lrects_;
+	std::vector< cv::Mat> multi_grays_;
 
 	caffe::shared_ptr<CaffePredictor > predictor_gender_;
 	caffe::shared_ptr<CaffePredictor > predictor_smile_;
@@ -61,6 +64,7 @@ private:
 	const float SCORETHRESHOLD;
 	const float EPS;
 
+	void ParrelTest(cv::Rect rect);
 	void AddPadding(cv::Rect&, int);
 	void AppendRectangles(std::vector<cv::Rect>& old_list,  std::vector<cv::Rect>& new_list);
 	void CalcProperties();
