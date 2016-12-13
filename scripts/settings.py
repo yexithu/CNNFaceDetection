@@ -51,5 +51,8 @@ FACE_BS1_TRAIN_LISTS = {
     'test' : 'data/lists/face_bs1_tests.list'
 }
 
-
-
+GENDER_TRAIN_LISTS = {
+    'train' : 'data/lists/gender_train.list',
+    'cross_val': 'data/lists/gender_cross_val.list',
+    'test' : 'data/lists/gender_test.list'
+}

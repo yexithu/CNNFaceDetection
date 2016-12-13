@@ -52,15 +52,26 @@ int main(int argc, char** argv) {
         // cv::imshow("Test", mat);
         vector<float> out = caffe_predictor.Predict(mat);
         // cout << "Score" << out[1] << endl;
-        // cv::waitKey(0);
+        // cv::waitKey(0);        
         result_list.push_back(out[1]);
     }
 
     ofstream outfile;
     outfile.open(result_file.c_str(), ios::out);
-
+    int correct_count = 0;
     for (size_t i = 0; i < img_list.size(); ++i) {
         outfile << img_list[i] << " " << label_list[i] << " " << result_list[i] << endl;
+        if (result_list[i] > 0.5) {
+            if (label_list[i]) {
+                correct_count += 1;
+            }
+        }
+        else {
+            if (!label_list[i]) {
+                correct_count += 1;   
+            }
+        }
     }
     outfile.close();
+    std::cout << "Acc: " << correct_count * 1.f / result_list.size() << std::endl;
 }

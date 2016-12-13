@@ -1,25 +1,25 @@
 # The train/test net protocol buffer definition
-net: "training/gender_conv1.prototxt"
+net: "training/gender_conv2.prototxt"
 # test_iter specifies how many forward passes the test should carry out.
 # In the case of MNIST, we have test batch size 100 and 100 test iterations,
 # covering the full 10,000 testing images.
 test_iter: 6
 # Carry out testing every 500 training iterations.
-test_interval: 500
+test_interval: 100
 # The base learning rate, momentum and the weight decay of the network.
-base_lr: 0.0001
+base_lr: 0.00001
 momentum: 0.9
 weight_decay: 0.0005
 # The learning rate policy
 lr_policy: "multistep"
 gamma: 0.1
-stepvalue: 20000
+stepvalue: 5000
 # Display every 100 iterations
 display: 20
 # The maximum number of iterations
-max_iter: 40000
+max_iter: 10000
 # snapshot intermediate results
 snapshot: 1000
-snapshot_prefix: "data/models/conv1_gender1"
+snapshot_prefix: "data/models/conv2_gender"
 # solver mode: CPU or GPU
 solver_mode: GPU
