@@ -28,8 +28,20 @@ int main(int argc, char** argv) {
     cv::Mat img = cv::imread(input);
     ensemble_detector.Input(img);
     if (ensemble_detector.Detect()) {
-        vector<cv::Rect> rects = ensemble_detector.GetFaces();
+        vector<Face> faces = ensemble_detector.GetFaces();
         cv::Mat out = ensemble_detector.GetOutput();
+        for (auto f: faces) {
+            cout << f.rect << "\t";
+            if (f.gender) {
+                cout << "Male ";
+            } else {
+                cout << "Female ";
+            }
+            if (f.is_smile) {
+                cout << "Smileing "; 
+            }
+            cout << endl;
+        }
         cv::imwrite(output, out);
     } else {
         cout << "Detection Fail." << endl;

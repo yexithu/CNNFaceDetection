@@ -9,6 +9,12 @@
 #include <vector>
 class CaffePredictor;
 
+typedef struct Face {
+	cv::Rect rect;
+	int gender; //1 male 0 female
+	int is_smile; // 1 smile 0 not
+} Face;
+
 class EnsembleDetector {
 public:
 	EnsembleDetector(const std::string& model_file,
@@ -17,7 +23,7 @@ public:
 
 	void Input(const cv::Mat img);
 	bool Detect();
-	std::vector<cv::Rect> GetFaces();
+	std::vector<Face> GetFaces();
 	// std::vector<cv::Rect> ScanImage(cv::Mat &img);
 	void ScanImage(cv::Mat &img, std::vector<cv::Rect> &highrects, std::vector<cv::Rect> &lowrects);
 	cv::Mat GetOutput();
@@ -38,9 +44,14 @@ private:
 	cv::Mat gray_;
 	cv::Mat output_;
 	std::vector<cv::Rect> faces_;
+	std::vector<int> genders_;
+	std::vector<int> smile_flags_;
 
 	caffe::shared_ptr<CaffePredictor > predictor1_;
 	caffe::shared_ptr<CaffePredictor > predictor2_;
+
+	caffe::shared_ptr<CaffePredictor > predictor_gender_;
+	caffe::shared_ptr<CaffePredictor > predictor_smile_;
 
 	const int FACESIZE;
 	const int HALFSIZE;
@@ -52,6 +63,7 @@ private:
 
 	void AddPadding(cv::Rect&, int);
 	void AppendRectangles(std::vector<cv::Rect>& old_list,  std::vector<cv::Rect>& new_list);
+	void CalcProperties();
 
 	inline cv::Rect _roi(cv::Point& center) {
 		return cv::Rect(center.x - HALFSIZE, center.y - HALFSIZE, FACESIZE, FACESIZE);

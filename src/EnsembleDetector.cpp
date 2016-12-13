@@ -11,6 +11,14 @@ using std::floor;
 using std::round;
 using std::min;
 
+const string GENDER_MODEL = "./models/gender.prototxt";
+const string GENDER_TRAINED = "./models/gender.model";
+const float GENDER_THRESHOLD = 0.5;
+
+const string SMILE_MODEL = "./models/smile.prototxt";
+const string SMILE_TRAINED = "./models/smile.model";
+const float SMILE_THRESHOLD = 0.8;
+
 EnsembleDetector::EnsembleDetector(const string& model_file,
 						   const string& trained_file1,
 						   const string& trained_file2)
@@ -18,6 +26,9 @@ EnsembleDetector::EnsembleDetector(const string& model_file,
 
 	predictor1_.reset(new CaffePredictor(model_file, trained_file1));
 	predictor2_.reset(new CaffePredictor(model_file, trained_file2));
+
+	predictor_gender_.reset(new CaffePredictor(GENDER_MODEL, GENDER_TRAINED));
+	predictor_smile_.reset(new CaffePredictor(SMILE_MODEL, SMILE_TRAINED));
 }
 
 void EnsembleDetector::Input(const cv::Mat img) {
@@ -27,6 +38,8 @@ void EnsembleDetector::Input(const cv::Mat img) {
 	cv::cvtColor(input_, gray_, CV_BGR2GRAY);
 	output_ = input_.clone();
 	faces_.clear();
+	genders_.clear();
+	smile_flags_.clear();
 }
 
 void EnsembleDetector::AddPadding(cv::Rect& r, int padding){
@@ -52,21 +65,6 @@ void EnsembleDetector::AppendRectangles(
         		flag = true;
         		break;
         	}
-			// auto padding = old_rect.width / 4;
-
-			// auto larger_new = new_rect;
-			// auto smaller_new = new_rect;
-			// AddPadding(larger_new, padding);
-			// AddPadding(smaller_new, - padding);
-
-			// bool new_covers_old = cover(new_rect, old_rect);
-			// bool smaller_new_overlaps_old = overlap(smaller_new, old_rect);
-			// bool larger_new_covers_old = cover(larger_new, old_rect);
-
-   //          if(new_covers_old || smaller_new_overlaps_old || larger_new_covers_old) {
-   //              flag = true;
-   //              break;
-   //          }
         }
         if(!flag) {
             rects_to_be_appended.push_back(new_rect);
@@ -79,38 +77,6 @@ void EnsembleDetector::AppendRectangles(
     return;
 }
 
-// bool EnsembleDetector::Detect() {
-// 	float rate = 1;
-// 	cv::Mat img = gray_.clone();
-// 	while(true) {
-// 		cv::Size size = img.size();
-// 		if (size.width < FACESIZE || size.height< FACESIZE)
-// 			break;
-
-// 		vector<cv::Rect> rects = ScanImage(img);
-// 		for (cv::Rect &rect: rects) {
-// 			rect.x = round(rect.x * rate);
-// 			rect.y = round(rect.y * rate);
-// 			rect.width = round(rect.width * rate);
-// 			rect.height = round(rect.height * rate);
-// 		}
-// 		AppendRectangles(faces_, rects);
-// 		// for (auto r: rects)
-// 		// 	faces_.push_back(r);
-// 		rate *= SCALERATE;
-// 		cv::resize(gray_, img, cv::Size(), 1 / rate, 1 / rate);
-// 	}
-
-// 	cv::Size in_size = input_.size();
-// 	in_size.width += 5;
-// 	in_size.height += 5;
-// 	cv::resize(output_, output_, in_size);
-// 	faces_ = RemoveTooLargeRectangles(faces_, 2);
-// 	for (cv::Rect rect: faces_) {
-// 		cv::rectangle(output_, rect, cv::Scalar(0, 0, 255));
-// 	}
-// 	return true;
-// }
 bool EnsembleDetector::allowed(cv::Rect& old_rect, cv::Rect& new_rect) {
 	auto insec =  old_rect & new_rect;
 	int min_area = min(old_rect.width * old_rect.height, new_rect.width * new_rect.height);
@@ -182,31 +148,77 @@ bool EnsembleDetector::Detect() {
 		}
 	}
 	faces_ = RemoveTooLargeRectangles(faces_, 2);
-	cv::Size in_size = input_.size();
-	in_size.width += 5;
-	in_size.height += 5;
-	cv::resize(output_, output_, in_size);
-	for (cv::Rect rect: faces_) {
-		cv::rectangle(output_, rect, cv::Scalar(0, 255, 0));
-	}
+	CalcProperties();
 	return true;
 }
 
-vector<cv::Rect> EnsembleDetector::GetFaces() {
+void EnsembleDetector::CalcProperties() {
+	cv::Rect whole;
+	whole.x = 0;
+	whole.y = 0;
+	whole.width = gray_.size().width;
+	whole.height = gray_.size().height;
+	for (auto fr: faces_) {
+		auto r = fr & whole;
+		cv::Mat patch = gray_(r).clone();
+		cv::resize(patch, patch, cv::Size(FACESIZE, FACESIZE));
+		float gscore = predictor_gender_->Predict(patch)[1];
+		float sscore = predictor_smile_->Predict(patch)[1];
+		if (gscore > GENDER_THRESHOLD) {
+			genders_.push_back(1);
+		} else {
+			genders_.push_back(0);
+		}
+		if (sscore > SMILE_THRESHOLD) {
+			smile_flags_.push_back(1);
+		} else {
+			smile_flags_.push_back(0);
+		}
+	}
+	for (int i = 0; i < faces_.size(); ++i) {
+		auto r = faces_[i] & whole;
+		if (genders_[i]) {
+			cv::rectangle(output_, r, cv::Scalar(255, 0, 0), 2);
+		} else {
+			cv::rectangle(output_, r, cv::Scalar(0, 255, 0), 2);
+		}
+		if (smile_flags_[i]) {
+			cv::Point center;
+			center.x = r.x + (r.width + 1) / 2;
+			center.y = r.y + (r.height + 1) / 2;
+			cv::circle(output_, center, r.width / 2, cv::Scalar(0, 0, 255), 2);
+			// cv::putText(output_, "SMILE", cv::Point(r.x, r.y + r.height), 
+			// 	cv::FONT_HERSHEY_SIMPLEX, 2, cv::Scalar(0, 0, 255), 2);
+		}
+	}
+	// cv::Size in_size = input_.size();
+	// in_size.width += 5;
+	// in_size.height += 5;
+	// cv::resize(output_, output_, in_size);
+	// for (cv::Rect rect: faces_) {
+	// 	cv::rectangle(output_, rect, cv::Scalar(0, 255, 0));
+	// }
+}
+
+vector<Face> EnsembleDetector::GetFaces() {
 	std::cout << "EnsembleDetector::GetFaces" << std::endl;
-	return vector<cv::Rect>();
+	vector<Face> results(faces_.size());
+	for (int i = 0; i < faces_.size(); ++i)
+	{
+		results[i].rect = faces_[i];
+		results[i].gender = genders_[i];
+		results[i].is_smile = smile_flags_[i];
+	}
+	return results;
 }
 
 cv::Mat EnsembleDetector::GetOutput() {
-	std::cout << "EnsembleDetector::GetOutput" << std::endl;
 	return output_;
 }
 
 void EnsembleDetector::ScanImage(cv::Mat &img, vector<cv::Rect> &highrects, vector<cv::Rect> &lowrects) {
 	std::cout << "EnsembleDetector::ScanImage" << std::endl;
 	cv::Size size = img.size();
-	// vector<cv::Rect>  rects;
-	// vector<cv::Rect>  rects;
 	for (int i = 0; i < img.rows; i+= STRIDE) {
 		// vector<float> row_score_map;
 		for (int j = 0; j < img.cols; j += STRIDE) {
@@ -230,33 +242,4 @@ void EnsembleDetector::ScanImage(cv::Mat &img, vector<cv::Rect> &highrects, vect
 			}
 		}
 	}
-	//groupRectangles(highrects, 0, EPS);
-	//groupRectangles(lowrects, 0, EPS);
-	// groupRectangles(rects, GROUPTHRESHOLD, EPS);
-	// return rects;
 }
-
-// vector<cv::Rect> EnsembleDetector::ScanImage(cv::Mat &img) {
-// 	std::cout << "EnsembleDetector::ScanImage" << std::endl;
-// 	cv::Size size = img.size();
-// 	vector<cv::Rect>  rects;
-// 	for (int i = 0; i < img.rows; i+= STRIDE) {
-// 		// vector<float> row_score_map;
-// 		for (int j = 0; j < img.cols; j += STRIDE) {
-// 			cv::Point p(j, i);
-// 			cv::Rect rect = _roi(p);
-// 			if (!_check(rect, size)) {
-// 				continue;
-// 			}
-// 			cv::Mat patch = img(rect);
-// 			float score1 = predictor1_->Predict(patch)[1];
-// 			float score2 = predictor2_->Predict(patch)[1];
-// 			if ((score1 > SCORETHRESHOLD) || (score2 > SCORETHRESHOLD)
-// 				|| ((score1 > 0.5) && (score2 > 0.5))) {
-// 				rects.push_back(rect);
-// 			}
-// 		}
-// 	}
-// 	groupRectangles(rects, GROUPTHRESHOLD, EPS);
-// 	return rects;
-// }
