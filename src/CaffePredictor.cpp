@@ -4,7 +4,11 @@ using namespace caffe;
 using std::string;
 
 CaffePredictor::CaffePredictor(const string& model_file, const string& trained_file) {
+#ifdef CPU_ONLY
+    Caffe::set_mode(Caffe::CPU);
+#else
     Caffe::set_mode(Caffe::GPU);
+#endif
     net_.reset(new Net<float>(model_file, TEST));
     net_->CopyTrainedLayersFrom(trained_file);
 
