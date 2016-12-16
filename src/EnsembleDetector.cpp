@@ -120,10 +120,6 @@ bool EnsembleDetector::Detect() {
 		}
 
 		AppendRectangles(hrects, _hrects);
-		for (auto r: _hrects)
-		{
-			hrects.push_back(r);
-		}
 		for (auto r: _lrects)
 		{
 			lrects.push_back(r);
